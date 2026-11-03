@@ -35,6 +35,17 @@ class Settings:
         default_factory=lambda: [u.strip() for u in os.getenv("CHAT_WEBHOOK_URLS", "").split(",") if u.strip()]
     )
 
+    # Email inbox watcher: reads Deliverect alert emails and forwards them (Telegram etc.)
+    imap_host: str = field(default_factory=lambda: os.getenv("IMAP_HOST", ""))
+    imap_port: int = field(default_factory=lambda: int(os.getenv("IMAP_PORT", "993")))
+    imap_user: str = field(default_factory=lambda: os.getenv("IMAP_USER", ""))
+    imap_password: str = field(default_factory=lambda: os.getenv("IMAP_PASSWORD", ""))
+    imap_folder: str = field(default_factory=lambda: os.getenv("IMAP_FOLDER", "INBOX"))
+    imap_from_filter: str = field(default_factory=lambda: os.getenv("IMAP_FROM_FILTER", "deliverect"))
+    imap_poll_s: float = field(default_factory=lambda: float(os.getenv("IMAP_POLL_SECONDS", "60")))
+    # Emails older than this are recorded but not alerted (avoids a flood on first start).
+    imap_max_age_min: float = field(default_factory=lambda: float(os.getenv("IMAP_MAX_AGE_MINUTES", "60")))
+
     # Deliverect numeric status codes. VERIFY against your Deliverect account docs.
     deliverect_received: set[str] = field(default_factory=lambda: _set("DELIVERECT_RECEIVED_STATUSES", "1,4"))
     deliverect_acked: set[str] = field(

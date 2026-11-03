@@ -16,6 +16,7 @@ import logging
 from fastapi import FastAPI, HTTPException, Request
 
 from .config import Settings
+from .email_watcher import EmailWatcher
 from .notifiers import Notifier, format_alert
 from .parsers import OrderEvent, deliverect_orders, parse_deliverect, parse_generic, parse_urbanpiper
 from .store import Store
@@ -75,11 +76,17 @@ def create_app(settings: Settings | None = None, notifier: Notifier | None = Non
 
     @contextlib.asynccontextmanager
     async def lifespan(app):
-        task = asyncio.create_task(svc.watchdog()) if run_watchdog else None
+        tasks = []
+        if run_watchdog:
+            tasks.append(asyncio.create_task(svc.watchdog()))
+            if settings.imap_host:
+                watcher = EmailWatcher(settings, svc.store, svc.notifier)
+                tasks.append(asyncio.create_task(watcher.loop()))
+                log.info("email watcher on %s/%s", settings.imap_host, settings.imap_folder)
         log.info("channels enabled: %s", svc.notifier.enabled_channels() or "NONE")
         yield
-        if task:
-            task.cancel()
+        for t in tasks:
+            t.cancel()
 
     app = FastAPI(title="Failed Order Alerts", lifespan=lifespan)
     app.state.svc = svc

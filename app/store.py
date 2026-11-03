@@ -16,7 +16,26 @@ class Store:
                 received_at REAL, acked_at REAL, alerted_at REAL, alert_reason TEXT,
                 PRIMARY KEY (source, order_id))"""
         )
+        self._db.execute(
+            "CREATE TABLE IF NOT EXISTS seen_emails (message_id TEXT PRIMARY KEY, seen_at REAL, alerted INTEGER)"
+        )
         self._db.commit()
+
+    def mark_email(self, message_id: str, alerted: bool) -> bool:
+        """Record an email. Returns False if it was already processed."""
+        with self._lock:
+            cur = self._db.execute(
+                "INSERT OR IGNORE INTO seen_emails (message_id, seen_at, alerted) VALUES (?, ?, ?)",
+                (message_id, time.time(), int(alerted)),
+            )
+            self._db.commit()
+            return cur.rowcount == 1
+
+    def email_seen(self, message_id: str) -> bool:
+        with self._lock:
+            return self._db.execute(
+                "SELECT 1 FROM seen_emails WHERE message_id=?", (message_id,)
+            ).fetchone() is not None
 
     def upsert(self, source, order_id, *, display_id=None, channel=None, store=None, status=None):
         with self._lock:

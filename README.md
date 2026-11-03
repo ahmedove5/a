@@ -9,6 +9,16 @@
 
 كل طلب ينبّه **مرة وحدة فقط** (ما في سبام).
 
+## الطريقة الموصى بها مع Foodics: تحويل إيميلات Deliverect إلى Telegram
+1. في Deliverect: **Configurations → Notifications → Create notification** → اختر **Order injection failed**
+   (وإذا تبي: Order cancelled / Order delayed / Store closed) → **Add external users** → حط إيميل مخصص للتنبيهات.
+2. في `.env` عبّي `IMAP_*` (لـGmail: فعّل 2FA وسوّ App Password) و `TELEGRAM_*`.
+3. شغّل الخدمة. كل دقيقة تقرأ الإيميلات الجديدة من Deliverect وترسلها لـTelegram:
+   نوع التنبيه، رقم الطلب، القناة، الفرع، السبب. لو شكل الإيميل ما انعرف، يرسل نص الإيميل نفسه.
+- ما يعدّل على الإيميل (يبقى unread)، وكل إيميل يتحول مرة وحدة.
+- أول تشغيل: الإيميلات الأقدم من `IMAP_MAX_AGE_MINUTES` تنحفظ بدون تنبيه (ما يجيك سيل رسائل).
+- تشغيل مستقل بدون السيرفر: `python -m app.email_watcher` أو `--once` لـcron.
+
 ## التشغيل
 ```bash
 cp .env.example .env      # عبّي القيم
