@@ -4,7 +4,9 @@ from dataclasses import dataclass, field
 
 
 def _set(name: str, default: str) -> set[str]:
-    return {s.strip().upper() for s in os.getenv(name, default).split(",") if s.strip()}
+    # strip quotes: `. ./.env` removes them, `docker --env-file` keeps them literally
+    raw = os.getenv(name, default).strip().strip("\"'")
+    return {s.strip().upper() for s in raw.split(",") if s.strip()}
 
 
 @dataclass

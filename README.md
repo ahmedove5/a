@@ -21,11 +21,14 @@
 
 ## التشغيل
 ```bash
-cp .env.example .env      # عبّي القيم
 pip install -r requirements.txt
+python scripts/setup_env.py   # يسأل عن التوكن والـApp Password بشكل مخفي، يطلع chat_id تلقائياً، ويتحقق من كل شي
+```
+يكتب `.env` (صلاحيات 600، ومستثنى من git) ويولّد `INGEST_TOKEN` عشوائي. بعدها:
+```bash
 set -a; . ./.env; set +a
 uvicorn app.main:app --host 0.0.0.0 --port 8000
-curl -X POST localhost:8000/test-alert -H "X-Alert-Token: change-me"   # جرّب القنوات
+python scripts/setup_env.py --test   # يجرب /test-alert بالتوكن من .env بدون ما يطبعه
 ```
 أو Docker:
 ```bash

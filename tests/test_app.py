@@ -121,3 +121,9 @@ def test_deliverect_stuck_before_pos(env):
     svc.store._db.execute("UPDATE orders SET received_at = ?", (time.time() - 600,))
     assert asyncio.run(svc.check_overdue()) == 1
     assert "Keeta (53)" in n.sent[0][1] and "777" in n.sent[0][1]
+
+
+def test_status_set_strips_quotes(monkeypatch):
+    from app.config import _set
+    monkeypatch.setenv("X_STATES", '"ACKNOWLEDGED,FOOD READY"')
+    assert _set("X_STATES", "") == {"ACKNOWLEDGED", "FOOD READY"}
