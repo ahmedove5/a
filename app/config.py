@@ -40,7 +40,7 @@ class Settings:
     deliverect_acked: set[str] = field(
         default_factory=lambda: _set("DELIVERECT_ACK_STATUSES", "2,20,40,50,60,70,80,85,86,90,95")
     )
-    deliverect_failed: set[str] = field(default_factory=lambda: _set("DELIVERECT_FAILED_STATUSES", "120,121,124"))
+    deliverect_failed: set[str] = field(default_factory=lambda: _set("DELIVERECT_FAILED_STATUSES", "120,121,122,124"))
     deliverect_cancelled: set[str] = field(default_factory=lambda: _set("DELIVERECT_CANCEL_STATUSES", "100,110"))
 
     # UrbanPiper order states (case-insensitive).
