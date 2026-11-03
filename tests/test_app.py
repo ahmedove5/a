@@ -102,3 +102,22 @@ def test_notifier_telegram_and_webhook():
     assert res == {"telegram": True, "webhook": True}
     assert len(calls) == 3
     assert "botT/sendMessage" in str(calls[0].url) and b"&lt;b&gt;" in calls[0].content
+
+
+def test_deliverect_real_orders_list(env):
+    import json, pathlib
+    c, n, _ = env
+    payload = json.loads((pathlib.Path(__file__).parent / "fixtures/deliverect_orders.json").read_text())
+    r = c.post("/webhooks/deliverect", json=payload).json()
+    assert [o["kind"] for o in r["orders"]] == ["acknowledged"] * 3
+    assert n.sent == []
+
+
+def test_deliverect_stuck_before_pos(env):
+    c, n, svc = env
+    r = c.post("/webhooks/deliverect", json={"_id": "x1", "channelOrderDisplayId": "777", "status": 1,
+                                            "channel": 53, "courier": {"deliveryBy": "Keeta"}})
+    assert r.json()["kind"] == "received"
+    svc.store._db.execute("UPDATE orders SET received_at = ?", (time.time() - 600,))
+    assert asyncio.run(svc.check_overdue()) == 1
+    assert "Keeta (53)" in n.sent[0][1] and "777" in n.sent[0][1]

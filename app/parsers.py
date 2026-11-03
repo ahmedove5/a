@@ -66,6 +66,20 @@ def parse_generic(p: dict) -> OrderEvent:
     )
 
 
+def _deliverect_channel(p: dict) -> str | None:
+    # courier.deliveryBy carries the readable name (Keeta, Jahez, Hunger Station); channel is a numeric id.
+    name = _first(p, "courier.deliveryBy", "channelName")
+    code = _first(p, "channel")
+    if name and code is not None:
+        return f"{name} ({code})"
+    return str(name or code) if (name or code is not None) else None
+
+
+def deliverect_orders(p: dict) -> list[dict]:
+    """A webhook sends one order; an orders list response wraps them in _items."""
+    return p["_items"] if isinstance(p.get("_items"), list) else [p]
+
+
 def parse_deliverect(p: dict, s: Settings) -> OrderEvent:
     order_id = _first(p, "_id", "orderId", "channelOrderId")
     if not order_id:
@@ -77,7 +91,7 @@ def parse_deliverect(p: dict, s: Settings) -> OrderEvent:
         kind=_classify(status, s.deliverect_received, s.deliverect_acked, s.deliverect_failed, s.deliverect_cancelled),
         status=status,
         display_id=_first(p, "channelOrderDisplayId", "channelOrderId"),
-        channel=str(_first(p, "channelName", "channel") or "") or None,
+        channel=_deliverect_channel(p),
         store=_first(p, "locationName", "location.name", "location", "channelLink"),
         reason=_first(p, "failureReason", "reason", "note"),
     )

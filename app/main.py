@@ -17,7 +17,7 @@ from fastapi import FastAPI, HTTPException, Request
 
 from .config import Settings
 from .notifiers import Notifier, format_alert
-from .parsers import OrderEvent, parse_deliverect, parse_generic, parse_urbanpiper
+from .parsers import OrderEvent, deliverect_orders, parse_deliverect, parse_generic, parse_urbanpiper
 from .store import Store
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -107,7 +107,17 @@ def create_app(settings: Settings | None = None, notifier: Notifier | None = Non
 
     @app.post("/webhooks/deliverect")
     async def deliverect(req: Request):
-        return await ingest(req, lambda p: parse_deliverect(p, settings))
+        auth(req)
+        try:
+            payload = await req.json()
+            events = [parse_deliverect(o, settings) for o in deliverect_orders(payload)]
+        except (ValueError, AttributeError) as e:
+            raise HTTPException(400, str(e))
+        results = []
+        for ev in events:
+            res = await svc.handle(ev)
+            results.append({"order_id": ev.order_id, "kind": ev.kind, "status": ev.status, **res})
+        return {"ok": True, "orders": results, **(results[0] if len(results) == 1 else {})}
 
     @app.post("/webhooks/urbanpiper")
     async def urbanpiper(req: Request):
